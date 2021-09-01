@@ -339,17 +339,33 @@ extension FolioReader {
             return
         }
 
-        guard let currentPage = self.readerCenter?.currentPage, let webView = currentPage.webView else {
+         guard let chapterHref = self.readerCenter?.getCurrentChapter()?.href else {
             return
         }
 
-        let position = [
-            "pageNumber": (self.readerCenter?.currentPageNumber ?? 0),
-            "pageOffsetX": webView.scrollView.contentOffset.x,
-            "pageOffsetY": webView.scrollView.contentOffset.y
-            ] as [String : Any]
+        let  position = ["chapterHref": chapterHref] as NSMutableDictionary
 
-        self.savedPositionForCurrentBook = position
+        guard let currentPosition = self.readerCenter?.currentPage?.webView?.js("getLineId(\(self.readerContainer?.readerConfig.scrollDirection == .horizontal))") else {
+            return
+
+        }
+
+        let jsonData = currentPosition.data(using: String.Encoding.utf8)
+
+        do {
+            if let data = jsonData {
+                let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+                if let j = json {
+                    position.setValue(j["value"], forKey: "value")
+                    position.setValue(j["usingId"], forKey: "usingId")
+                }
+            }
+
+        } catch _ {
+            print("Doesn't save the current position")
+        }
+
+        self.savedPositionForCurrentBook = position as! [String: Any]
     }
 
     /// Closes and save the reader current instance.
